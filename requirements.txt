@@ -3,3 +3,5 @@ torch
 transformers
 requests
 qdrant-client
+fastapi
+uvicorn
