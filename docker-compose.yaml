@@ -1,9 +1,11 @@
 services:
   base: &base
     image: chatwoot/chatwoot:latest
-    env_file: .env ## Change this file for customized env variables
+    env_file: .env
     volumes:
       - storage_data:/app/storage
+    networks:
+      - backend
 
   rails:
     <<: *base
@@ -43,8 +45,9 @@ services:
     environment:
       - POSTGRES_DB=chatwoot
       - POSTGRES_USER=postgres
-      # Please provide your own password.
       - POSTGRES_PASSWORD=asd
+    networks:
+      - backend
 
   redis:
     container_name: redis
@@ -56,6 +59,8 @@ services:
       - redis_data:/data
     ports:
       - '127.0.0.1:6379:6379'
+    networks:
+      - backend
 
   qdrant:
     container_name: qdrant
@@ -63,8 +68,36 @@ services:
     restart: always
     ports:
       - '6333:6333'
+    networks:
+      - backend
+
+  fastapi:
+    container_name: fastapi
+    build:
+      context: .
+    depends_on:
+      - qdrant
+      - postgres
+    restart: always
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 20s
+    ports:
+      - '8000:8000'
+    environment:
+      - QDRANT_URL=http://qdrant:6333
+    volumes:
+      - .:/app
+    networks:
+      - backend
+
 
 volumes:
   storage_data:
   postgres_data:
   redis_data:
+
+networks:
+  backend:
+    driver: bridge
