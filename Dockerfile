@@ -26,7 +26,7 @@ RUN pip install --upgrade pip && \
     pip install "https://download.pytorch.org/whl/cpu/torch-2.9.0%2Bcpu-cp312-cp312-manylinux_2_28_x86_64.whl"
 
 # Копируем исходный код приложения
-COPY . .
+#COPY . .
 
 EXPOSE 8000
 

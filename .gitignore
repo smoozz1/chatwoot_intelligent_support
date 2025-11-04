@@ -1,4 +1,7 @@
 /venv
 /tests
-private_stuff.py
 __pycache__/
+users_chat.html
+private_stuff.py
+.git
+*.pyc
