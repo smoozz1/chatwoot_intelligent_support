@@ -7,7 +7,10 @@ from app.clients.chatwoot_client import Chatwoot
 from app.core.embedder import Embedder
 from app.scripts.init_kb import init_kb
 from app.services.assistant import Assistant
-from app.private_stuff import CHATWOOT_ADMIN_ID, CHATWOOT_API_KEY
+
+#Вставляем свои данные
+CHATWOOT_ADMIN_ID = 
+CHATWOOT_API_KEY = 
 
 logger = logging.getLogger(__name__)
 
