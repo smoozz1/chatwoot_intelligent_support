@@ -51,9 +51,9 @@ docker compose up -d
 
 ### **8. Тестируем**
 
-<img width="500" height="650" alt="image" src="https://github.com/user-attachments/assets/4a9bd679-69ab-44a5-b2f7-88607335b823" />
+<img width="350" height="450" alt="image" src="https://github.com/user-attachments/assets/4a9bd679-69ab-44a5-b2f7-88607335b823" />
 
-<img width="500" height="650" alt="image" src="https://github.com/user-attachments/assets/cbade125-a5a8-4ba3-868e-9bb0cdc8a2d3" />
+<img width="350" height="450" alt="image" src="https://github.com/user-attachments/assets/cbade125-a5a8-4ba3-868e-9bb0cdc8a2d3" />
 
 ---
 
@@ -73,4 +73,5 @@ docker compose up -d
 * Визуализация статистики по обращениям клиентов
 
 ---
+
 
