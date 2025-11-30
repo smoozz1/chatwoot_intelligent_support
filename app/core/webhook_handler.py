@@ -25,10 +25,10 @@ async def handle_webhook(request: Request, app_state):
         message_time = datetime.fromisoformat(message_time_str.replace("Z", "+00:00"))
 
         logger.info(
-            "Новое сообщение от %s, chat_id=%s, время=%s, текст=%s",
+            "Новое сообщение от %s, chat_id: %s, время: %s, текст: %s",
             data['sender']['name'],
             conversation_id,
-            message_time_str,
+            message_time,
             message
         )
 

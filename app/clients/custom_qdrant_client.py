@@ -11,18 +11,21 @@ COLLECTION_NAME = 'my_collection'
 
 class Qdrant:
     def __init__(self, host="qdrant", port=6333, api=None, url=None):
-        self._id_counter = itertools.count(1)  # генератор для уникальных ID
-        self.client = AsyncQdrantClient(host=host, port=port)
-        logger.info('AsyncQdrantClient клиент инициализирован')
+        logger.info('Инициализация Qdrant клиента...')
+        self._id_counter = itertools.count(1)
         self.host = host
         self.port = port
         self.api = api
         self.url = url
         self.answers_number = TOP_K_ANSWERS
         self.collection_name = COLLECTION_NAME
+        self.client = AsyncQdrantClient(host=self.host, port=self.port)
+        logger.info(f'Qdrant клиент инициализирован, URL: http://localhost:{self.port}/dashboard#/welcome')
+        
 
     async def collection_init(self):
         """Создание коллекции, если она ещё не существует"""
+        logger.info(f'Интерактивная панель коллекций доступна по ссылке: http://localhost:{self.port}/dashboard#/collections')
         if not await self.client.collection_exists(self.collection_name):
             await self.client.create_collection(
                 collection_name=self.collection_name,
