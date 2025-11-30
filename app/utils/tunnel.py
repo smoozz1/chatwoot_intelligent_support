@@ -34,9 +34,23 @@ class LocalTunnel:
 
     async def stop(self):
         self._stop = True
-        if self.process:
+        proc = self.process
+        self.process = None
+
+        if proc:
             logger.info(f"LocalTunnel остановлен, URL: {self.current_url}")
-            self.process.kill()
+            try:
+                if proc.returncode is None:
+                    proc.kill()
+            except ProcessLookupError:
+                pass
+            except Exception as e:
+                logger.warning(f"Ошибка при остановке туннеля: {e}")
+
+            try:
+                await proc.wait()
+            except Exception:
+                pass
 
     async def _run(self):
         while not self._stop:
@@ -53,7 +67,6 @@ class LocalTunnel:
             await asyncio.sleep(self.check_interval)
 
     async def _start_tunnel(self):
-        # Запуск lt в subprocess
         self.process = await asyncio.create_subprocess_exec(
             "lt",
             "--port", str(self.port),
@@ -66,7 +79,7 @@ class LocalTunnel:
         while True:
             if time.time() - start_time > self.timeout:
                 logger.error("Не удалось получить публичный URL LocalTunnel")
-                self.process.kill()
+                await self._safe_kill(self.process)
                 return
             
             try:
@@ -81,63 +94,82 @@ class LocalTunnel:
             decoded = line.decode().strip()
             
             match = re.search(r"https://[-a-zA-Z0-9]+\.loca\.lt", decoded)
-            if match:
-                new_url = match.group(0)
-                
-                # debounce
-                now = time.time()
-                if (
-                    new_url == self.current_url
-                    and now - self._last_url_change_ts < self._debounce_interval
-                ):
-                    logger.info(
-                        f"Получен повторный URL {new_url}, но событие проигнорировано (debounce)"
-                    )
-                    return self.current_url
-                
-                self._last_url_change_ts = now
-                self.current_url = new_url
-                
-                logger.info(f"Получен новый LocalTunnel URL: {new_url}")
-                
-                if not await self._check_tunnel():
-                    logger.warning(f"URL {new_url} недоступен сразу после запуска. Пропускаю.")
-                    return self.current_url
-                
-                if self.on_url_change:
-                    await self.on_url_change(new_url)
-                    
+            if not match:
+                continue
+
+            new_url = match.group(0)
+
+            # debounce
+            now = time.time()
+            if (
+                new_url == self.current_url
+                and now - self._last_url_change_ts < self._debounce_interval
+            ):
+                logger.info(
+                    f"Получен повторный URL {new_url}, проигнорировано (debounce)"
+                )
                 return self.current_url
             
-    async def _restart_tunnel(self):
-        if self.process:
-            self.process.kill()
-            try:
-                await self.process.wait()
-            except Exception:
-                pass
+            self._last_url_change_ts = now
+            self.current_url = new_url
             
+            logger.info(f"Получен новый LocalTunnel URL: {new_url}")
+
+            # новый health-check
+            if not await self._check_tunnel():
+                logger.warning(f"URL {new_url} недоступен сразу после запуска. Пропускаю.")
+                return self.current_url
+            
+            if self.on_url_change:
+                await self.on_url_change(new_url)
+                
+            return self.current_url
+
+    async def _restart_tunnel(self):
+        proc = self.process
         self.process = None
         self.current_url = None
-        
+
+        await self._safe_kill(proc)
+        await asyncio.sleep(1)
+
         await self._start_tunnel()
-        
+
+    async def _safe_kill(self, proc):
+        if not proc:
+            return
+
+        try:
+            if proc.returncode is None:
+                proc.kill()
+        except ProcessLookupError:
+            pass
+        except Exception as e:
+            logger.warning(f"Ошибка kill: {e}")
+
+        try:
+            await proc.wait()
+        except Exception:
+            pass
+
     async def _check_tunnel(self, retries=3, retry_interval=0.5):
-        """Проверяет доступность туннеля через GET с несколькими попытками."""
         if not self.current_url:
             return False
+
+        url = self.current_url.rstrip("/") + "/webhook"
 
         for attempt in range(1, retries + 1):
             try:
                 async with aiohttp.ClientSession() as session:
-                    async with session.get(self.current_url, timeout=3) as resp:
+                    async with session.options(url, timeout=3) as resp:
                         if resp.status < 500:
                             return True
             except Exception as e:
-                logger.debug(f"Попытка {attempt} GET {self.current_url} не удалась: {e}")
+                logger.debug(
+                    f"Попытка {attempt} OPTIONS {url} не удалась: {e}"
+                )
 
             await asyncio.sleep(retry_interval)
 
         logger.warning(f"Туннель {self.current_url} недоступен после {retries} попыток")
         return False
-

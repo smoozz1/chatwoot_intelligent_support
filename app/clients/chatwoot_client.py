@@ -51,7 +51,10 @@ class Chatwoot:
                 if each['subscriptions'] == ['message_created']:
                     self.message_webhooks.append(each['id'])
             if self.message_webhooks:
-                logger.info(f'Найдены вебхуки о сообщениях: {"; ".join(self.message_webhooks)}')
+                if len(self.message_webhooks) > 1:
+                    logger.info(f'Найдены вебхуки о сообщениях: {"; ".join(self.message_webhooks)}')
+                else:
+                    logger.info(f'Найден вебхук о сообщениях: {self.message_webhooks[0]}')
             else:
                 logger.info(f'Вебхуки о сообщениях отсутствуют')
         except httpx.HTTPError:
@@ -74,6 +77,7 @@ class Chatwoot:
                 resp = await self.client.patch(f'{url}/{self.message_webhooks[0]}', json=payload, headers=headers)
                 resp.raise_for_status()
                 logger.info(f"Вебхук {self.message_webhooks[0]} обновлен: {self.webhook_url}")
+                self.webhook_id = resp.json()['payload']['webhook']['id']
             else:
                 resp = await self.client.post(url, json=payload, headers=headers)
                 resp.raise_for_status()
@@ -84,9 +88,6 @@ class Chatwoot:
 
     async def delete_webhook(self):
         """Удаление вебхука"""
-        if not self.message_webhooks:
-            logger.warning("Нет вебхука для удаления")
-            return False
 
         url = f"https://app.chatwoot.com/api/v1/accounts/{self.admin_id}/webhooks/{self.webhook_id}"
         headers = {"api_access_token": self.api_key}
@@ -98,7 +99,7 @@ class Chatwoot:
             logger.info(f"Вебхук {self.webhook_url} удален")
             return True
         except httpx.HTTPError as e:
-            logger.error(f"Не удалось удалить вебхук {self.webhook_url}: {resp.text}")
+            logger.error(f"Не удалось удалить вебхук {self.webhook_url} : {resp.text}")
             return False
 
     async def send_message(self, conversation_id, content: str, private: bool = True):

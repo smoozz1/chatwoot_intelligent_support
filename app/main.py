@@ -1,5 +1,6 @@
 import logging
 from fastapi import FastAPI, Request
+from fastapi.responses import PlainTextResponse
 import uvicorn
 
 from app.core.lifespan import lifespan
@@ -9,6 +10,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(lifespan=lifespan)
+
+@app.options("/webhook")
+def webhook_options():
+    return PlainTextResponse("", status_code=200)
 
 @app.post("/webhook")
 async def webhook(request: Request):
